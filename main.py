@@ -66,6 +66,7 @@ class ProjectionSchema(BaseModel):
     completion_score: float = Field(description="0.0 to 1.0", ge=0.0, le=1.0)
     data_quality_score: float = Field(description="0.0 to 1.0", ge=0.0, le=1.0)
     projection_confidence_score: float = Field(description="0.0 to 1.0", ge=0.0, le=1.0)
+    reasons_for_low_quality_or_confidence_score: List[str]
     projection_drivers_found: List[str]
     assumptions_made: List[str]
     anomalies_found: List[str]
@@ -82,68 +83,18 @@ filepath1 = pathlib.Path('Profit and Loss - MJV Plumbing Services.csv')
 filepath2 = pathlib.Path('Balance Sheet - MJV Plumbing Services.csv')
 
 prompt = """
-Use your full potential of Deep Think, Deep Research and other relevant capabilities to analyse both the profit and loss as well as balance sheet data linked. 
+Use your full potential of Deep Think, reason and other relevant capabilities to analyse both the profit and loss as well as balance sheet data linked. 
 
 PROJECTION REQUIREMENTS:
-Provide detailed financial projections for Revenue, Net Profit, Gross Profit, and Expenses across these timeframes:
+Provide detailed financial projections for Revenue, Net Profit, Gross Profit, and Expenses across these timeframes (commencing January of Next Year):
 - 1 year: Monthly values (12 data points)
 - 3 years: Monthly values (36 data points) 
 - 5 years: Quarterly values (20 data points)
 - 10 years: Annual values (10 data points)
 - 15 years: Annual values (15 data points)
 
-ANALYSIS METHODOLOGY:
-1. Identify historical trends and seasonality patterns
-2. Calculate growth rates and financial ratios
-3. Apply appropriate forecasting techniques (trend analysis, seasonal decomposition, regression)
-4. Consider industry benchmarks and economic factors
-5. Account for business lifecycle stage and market conditions
-6. Validate projections against realistic business constraints
-
-CRITICAL DATA CONTEXT:
-Different businesses use varying chart of accounts, but certain high-level categories are universally present. There could be multiple sub-fields that maybe the sub-part of the fields given below and when these subfields get added they give the sum of the following fields. Your task is to extract ALL available data and map it to these GUARANTEED STANDARD FIELDS that exist across all businesses:
-
-GUARANTEED P&L STANDARD FIELDS (1-10 fields given below - only include if document contains P&L data):
-1. Revenue (Sales, Turnover, Income, Total Revenue)
-2. Cost of Sales (COGS, Cost of Goods Sold, Direct Costs)
-3. Gross Profit (Gross Margin, Gross Income)
-4. Operating Expenses (Total Expenses, Total OpEx, Overhead, Admin Expenses)
-5. Operating Profit (EBIT, Operating Income, EBITDA before D&A)
-6. Interest Expenses (Finance Costs, Interest Paid, Borrowing Costs)
-7. Earnings Before Tax (EBT, Profit Before Tax, Pre-tax Income)
-8. Tax Expenses (Income Tax, Tax Provision, Corporate Tax)
-9. Earnings After Tax (EAT, Profit After Tax, After-tax Income)
-10. Net Income (Net Profit, Bottom Line, Final Profit)
-
-GUARANTEED BALANCE SHEET STANDARD FIELDS (11-25 fields given below - only include if document contains BS data):
-ASSETS:
-11. Cash & Cash Equivalents (Cash, Bank, Liquid Assets, Short-term Investments)
-12. Accounts Receivable (Trade Debtors, AR, Customer Receivables)
-13. Inventory (Stock, Work in Progress, Finished Goods)
-14. Total Current Assets (Current Assets, Short-term Assets)
-15. Fixed Assets Net (PPE Net, Property Plant Equipment, Non-current Assets)
-16. Total Assets
-
-LIABILITIES:
-17. Accounts Payable (Trade Creditors, AP, Supplier Payables)
-18. Short Term Debt (Current Portion Debt, Bank Overdraft, Current Borrowings)
-19. Total Current Liabilities (Current Liabilities, Short-term Liabilities)
-20. Long Term Debt (Long-term Borrowings, Non-current Debt)
-21. Total Liabilities
-
-EQUITY:
-22. Share Capital (Paid-in Capital, Issued Capital, Owner's Capital)
-23. Retained Earnings (Accumulated Profits, Reserves, Undistributed Profits)
-24. Total Equity (Shareholders' Equity, Owner's Equity, Net Worth)
-25. Total Liabilities and Equity
-
 RESPONSE REQUIREMENTS:
 - Ensure all projections are realistic and defensible
-- Include confidence intervals where appropriate
-- Explain methodology and key assumptions clearly
-- Highlight any data limitations or uncertainties
-- Provide actionable insights and recommendations
-- Structure response according to the enhanced ProjectionSchema
 """
 
 try:
@@ -163,6 +114,7 @@ try:
         config={
             "response_mime_type": "application/json",
             "response_schema": ProjectionSchema,
+            "temperature":0.7
         },
     )
 
@@ -177,12 +129,15 @@ try:
     # Optional: Parse and validate the JSON response
     try:
         import json
-        parsed_response = json.loads(response.text)
-        validated_projection = ProjectionSchema(**parsed_response)
-        print("\n✅ Schema validation successful!")
-        print(f"Business: {validated_projection.business_name}")
-        print(f"Confidence Score: {validated_projection.projection_confidence_score:.2f}")
-        print(f"Data Quality Score: {validated_projection.data_quality_score:.2f}")
+        if response.text:
+            parsed_response = json.loads(response.text)
+            validated_projection = ProjectionSchema(**parsed_response)
+            print("\n✅ Schema validation successful!")
+            print(f"Business: {validated_projection.business_name}")
+            print(f"Confidence Score: {validated_projection.projection_confidence_score:.2f}")
+            print(f"Data Quality Score: {validated_projection.data_quality_score:.2f}")
+        else:
+            print("\n❌ Response text is empty, skipping schema validation.")
     except Exception as e:
         print(f"\n❌ Schema validation failed: {e}")
 
