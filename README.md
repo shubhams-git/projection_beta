@@ -26,11 +26,11 @@ The `main.py` file contains the core logic of the application. It includes:
 ```mermaid
 graph TD
     A[Client] -->|POST /predict with CSV files| B(FastAPI Application)
-    B --> C{Validate File Types .csv}
+    B --> C{Validate File Types (.csv)?}
     C -- No --> D[HTTP 400 Error]
     C -- Yes --> E[Read CSV File Contents]
     E --> F[Construct AI Prompt]
-    F --> G - Google Generative AI Model - Gemini 2.5 Pro
+    F --> G(Google Generative AI Model - Gemini 2.5 Pro)
     G -->|Send CSVs + Prompt (with ProjectionSchema)| H(AI Generates JSON Response)
     H --> I[Receive AI JSON Response]
     I --> J{Parse & Validate JSON against ProjectionSchema}
