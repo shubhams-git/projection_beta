@@ -18,86 +18,181 @@ app = FastAPI(title="Financial Projection API", version="1.0.0")
 
 client = genai.Client()
 
-class GrowthRateAssumptions(BaseModel):
-    """Growth rate assumptions with fixed fields"""
-    revenue_cagr: float = Field(description="Revenue compound annual growth rate")
-    expense_inflation: float = Field(description="Expense inflation rate")
-    profit_margin_target: float = Field(description="Target profit margin")
+class FinancialGrowthAssumptions(BaseModel):
+    """Detailed growth rate assumptions for comprehensive financial modeling"""
+    revenue_cagr: float = Field(
+        description="Revenue compound annual growth rate as a decimal (e.g., 0.15 for 15% CAGR). Should reflect industry benchmarks, historical performance, and market conditions."
+    )
+    expense_inflation: float = Field(
+        description="Annual expense inflation rate as a decimal (e.g., 0.03 for 3%). Consider cost-push factors, wage inflation, and operational cost trends."
+    )
+    profit_margin_target: float = Field(
+        description="Target net profit margin as a decimal (e.g., 0.12 for 12%). Should be achievable based on industry standards and operational efficiency improvements."
+    )
 
-class KeyFinancialRatios(BaseModel):
-    """Key financial ratios with fixed fields"""
-    gross_margin: float = Field(description="Gross profit margin")
-    net_margin: float = Field(description="Net profit margin")
-    current_ratio: float = Field(description="Current assets / Current liabilities")
-    debt_to_equity: float = Field(description="Total debt / Total equity")
+class ComprehensiveFinancialRatios(BaseModel):
+    """Critical financial health indicators for business performance assessment"""
+    gross_margin: float = Field(
+        description="Gross profit margin as a decimal (Revenue - COGS)/Revenue. Indicates pricing power and cost control effectiveness."
+    )
+    net_margin: float = Field(
+        description="Net profit margin as a decimal (Net Income/Revenue). Reflects overall operational efficiency and profitability after all expenses."
+    )
+    current_ratio: float = Field(
+        description="Current assets divided by current liabilities. Values above 1.0 indicate good short-term liquidity. Industry benchmark typically 1.2-2.0."
+    )
+    debt_to_equity: float = Field(
+        description="Total debt divided by total shareholders' equity. Lower ratios indicate less financial risk. Optimal range varies by industry."
+    )
 
-class MonthlyProjection(BaseModel):
-    """Monthly projection data structure"""
-    month: str = Field(description="Format: 2026-01, 2026-02, etc.")
-    revenue: float
-    net_profit: float
-    gross_profit: float
-    expenses: float
+class DetailedMonthlyProjection(BaseModel):
+    """Granular monthly financial projections with seasonal considerations"""
+    month: str = Field(
+        description="Month in YYYY-MM format (e.g., '2026-01', '2026-02'). Ensure chronological ordering starting from next January."
+    )
+    revenue: float = Field(
+        description="Total monthly revenue in base currency. Consider seasonal patterns, market cycles, and growth trajectories."
+    )
+    net_profit: float = Field(
+        description="Monthly net profit after all expenses, taxes, and deductions. Should align with projected profit margins."
+    )
+    gross_profit: float = Field(
+        description="Monthly gross profit (Revenue - Cost of Goods Sold). Must be mathematically consistent with revenue and expense projections."
+    )
+    expenses: float = Field(
+        description="Total monthly operating expenses including COGS, SG&A, interest, and taxes. Factor in inflation and scale effects."
+    )
 
-class QuarterlyProjection(BaseModel):
-    """Quarterly projection data structure"""
-    quarter: str = Field(description="Format: 2026-Q1, 2026-Q2, etc.")
-    revenue: float
-    net_profit: float
-    gross_profit: float
-    expenses: float
+class DetailedQuarterlyProjection(BaseModel):
+    """Comprehensive quarterly financial projections for medium-term planning"""
+    quarter: str = Field(
+        description="Quarter in YYYY-QN format (e.g., '2026-Q1', '2026-Q2'). Aggregate monthly data appropriately for quarterly reporting."
+    )
+    revenue: float = Field(
+        description="Total quarterly revenue aggregated from monthly projections. Ensure consistency with seasonal business patterns."
+    )
+    net_profit: float = Field(
+        description="Quarterly net profit reflecting operational performance and one-time adjustments if applicable."
+    )
+    gross_profit: float = Field(
+        description="Quarterly gross profit demonstrating core business profitability before operating expenses."
+    )
+    expenses: float = Field(
+        description="Total quarterly expenses including both fixed and variable costs, scaled appropriately for business growth."
+    )
 
-class AnnualProjection(BaseModel):
-    """Annual projection data structure"""
-    year: int
-    revenue: float
-    net_profit: float
-    gross_profit: float
-    expenses: float
+class DetailedAnnualProjection(BaseModel):
+    """Strategic annual financial projections for long-term business planning"""
+    year: int = Field(
+        description="Calendar year for the projection (e.g., 2026, 2027). Should follow logical progression from base year."
+    )
+    revenue: float = Field(
+        description="Annual revenue reflecting cumulative growth, market expansion, and business development initiatives."
+    )
+    net_profit: float = Field(
+        description="Annual net profit incorporating full-year operational results, tax implications, and strategic investments."
+    )
+    gross_profit: float = Field(
+        description="Annual gross profit demonstrating core business unit economics and scale efficiencies."
+    )
+    expenses: float = Field(
+        description="Total annual expenses including operational costs, capital expenditures, and growth investments."
+    )
 
-class ProjectionsData(BaseModel):
-    """Comprehensive projections data structure"""
-    one_year_monthly: List[MonthlyProjection] = Field(description="12 months of monthly data")
-    three_years_monthly: List[MonthlyProjection] = Field(description="36 months of monthly data")
-    five_years_quarterly: List[QuarterlyProjection] = Field(description="20 quarters of quarterly data")
-    ten_years_annual: List[AnnualProjection] = Field(description="10 years of annual data")
-    fifteen_years_annual: List[AnnualProjection] = Field(description="15 years of annual data")
+class ComprehensiveProjectionsDataset(BaseModel):
+    """Complete financial projections dataset covering all required timeframes"""
+    one_year_monthly: List[DetailedMonthlyProjection] = Field(
+        description="Exactly 12 months of detailed monthly projections starting from January of next year. Critical for cash flow management and short-term planning."
+    )
+    three_years_monthly: List[DetailedMonthlyProjection] = Field(
+        description="Exactly 36 months of monthly projections covering three full years. Essential for medium-term strategic planning and investor presentations."
+    )
+    five_years_quarterly: List[DetailedQuarterlyProjection] = Field(
+        description="Exactly 20 quarters (5 years) of quarterly projections. Standard timeframe for business plan financial modeling and loan applications."
+    )
+    ten_years_annual: List[DetailedAnnualProjection] = Field(
+        description="Exactly 10 years of annual projections for long-term strategic planning. Consider major market shifts and competitive dynamics."
+    )
+    fifteen_years_annual: List[DetailedAnnualProjection] = Field(
+        description="Exactly 15 years of annual projections for comprehensive long-term analysis. Factor in industry lifecycle and technological disruption potential."
+    )
 
-class MethodologyDetails(BaseModel):
-    """Details about the projection methodology used"""
-    forecasting_methods_used: List[str]
-    seasonal_adjustments_applied: bool
-    trend_analysis_period: str
-    growth_rate_assumptions: GrowthRateAssumptions
+class ProjectionMethodologyFramework(BaseModel):
+    """Comprehensive methodology documentation for projection transparency and validation"""
+    forecasting_methods_used: List[str] = Field(
+        description="List of specific forecasting techniques applied (e.g., 'Trend Analysis', 'Regression Modeling', 'Seasonal Decomposition', 'Monte Carlo Simulation')."
+    )
+    seasonal_adjustments_applied: bool = Field(
+        description="Whether seasonal patterns were identified and incorporated into projections. Critical for businesses with cyclical revenue patterns."
+    )
+    trend_analysis_period: str = Field(
+        description="Time period used for historical trend analysis (e.g., '3 years', '5 years'). Longer periods provide more stability but may miss recent shifts."
+    )
+    growth_rate_assumptions: FinancialGrowthAssumptions = Field(
+        description="Detailed assumptions about growth rates and economic factors driving the projections."
+    )
 
-class QualityScores(BaseModel):
-    score: float = Field(description="0.0 to 1.0", ge=0.0, le=1.0)
-    rationale: str = Field(description="The 1 sentence explanation for the score given")
+class ValidationQualityScores(BaseModel):
+    """Quantitative quality assessment scores with detailed rationale"""
+    score: float = Field(
+        description="Quality score from 0.0 to 1.0 where 1.0 represents highest quality/confidence. Use precise decimal values (e.g., 0.85, not 0.8 or 0.9).",
+        ge=0.0, 
+        le=1.0
+    )
+    rationale: str = Field(
+        description="Single, comprehensive sentence explaining the specific factors that influenced this score, including data quality, completeness, and analytical confidence."
+    )
 
-class ProjectionSchema(BaseModel):
-    """Enhanced schema for comprehensive financial projections"""
-    executive_summary: str
-    business_name: str
-    completion_score: QualityScores = Field(description="The completion score of the projection generation as per the requirements")
-    data_quality_score: QualityScores = Field(description="The Score representing the quality of data after the extractions from the attached files")
-    projection_confidence_score: QualityScores = Field(description="The cumulative score representing the net quality of the final projections generated")
-    projection_drivers_found: List[str] = Field(description="List of all the drivers used to make the projections. If none, then specify the exact methods used to make projections.")
-    assumptions_made: List[str] = Field(description="List of all the major/important assumptions used to make the projections.")
-    anomalies_found: List[str] = Field(description="List of all the major/important anomalies found in the data after thorough inspection and analysis while making the projections.")
-    methodology: MethodologyDetails = Field(description="Explanation of the primary projection methodologies.")
-    projections_data: ProjectionsData
+class ComprehensiveFinancialProjectionResponse(BaseModel):
+    """Complete financial projection response with enhanced business intelligence and validation metrics"""
+    executive_summary: str = Field(
+        description="Concise 2-3 sentence summary highlighting key financial trends, growth trajectory, and critical insights from the projection analysis."
+    )
+    business_name: str = Field(
+        description="Full legal or operating name of the business entity as identified from the financial statements."
+    )
+    completion_score: ValidationQualityScores = Field(
+        description="Assessment of how completely all required projection elements were generated according to specifications."
+    )
+    data_quality_score: ValidationQualityScores = Field(
+        description="Evaluation of the underlying financial data quality, completeness, consistency, and reliability for projection purposes."
+    )
+    projection_confidence_score: ValidationQualityScores = Field(
+        description="Overall confidence level in the accuracy and reliability of the generated financial projections based on data quality and methodology."
+    )
+    projection_drivers_found: List[str] = Field(
+        description="Specific financial metrics, ratios, or business factors that drove the projection calculations (e.g., 'Historical revenue growth rate of 15%', 'Seasonal Q4 revenue spike', 'Declining expense ratios')."
+    )
+    assumptions_made: List[str] = Field(
+        description="Critical business and economic assumptions underlying the projections (e.g., 'Market conditions remain stable', 'No major competitive disruption', 'Inflation rate of 3% annually')."
+    )
+    anomalies_found: List[str] = Field(
+        description="Unusual patterns, outliers, or inconsistencies discovered in the historical data that may impact projection reliability (e.g., 'Spike in expenses Q3 2023', 'Missing revenue data for 2 months')."
+    )
+    methodology: ProjectionMethodologyFramework = Field(
+        description="Detailed documentation of the analytical approach and mathematical methods used to generate the projections."
+    )
+    projections_data: ComprehensiveProjectionsDataset = Field(
+        description="Complete set of financial projections across all required timeframes with mathematical consistency between periods."
+    )
     
-    # Additional useful fields for business analysis
-    key_financial_ratios: KeyFinancialRatios
-    risk_factors: List[str]
-    recommendations: List[str]
+    # Enhanced business intelligence fields
+    key_financial_ratios: ComprehensiveFinancialRatios = Field(
+        description="Critical financial health metrics calculated from projections to assess business performance and sustainability."
+    )
+    risk_factors: List[str] = Field(
+        description="Identified financial, operational, or market risks that could materially impact the projected financial performance."
+    )
+    recommendations: List[str] = Field(
+        description="Actionable strategic recommendations based on projection analysis to optimize financial performance and mitigate identified risks."
+    )
 
 @app.get("/")
 async def root():
     logger.info("Root endpoint accessed.")
     return {"message": "Financial Projection API is running"}
 
-@app.post("/predict", response_model=ProjectionSchema)
+@app.post("/predict", response_model=ComprehensiveFinancialProjectionResponse)
 async def predict(
     profit_loss_file: UploadFile = File(..., description="Profit and Loss CSV file"),
     balance_sheet_file: UploadFile = File(..., description="Balance Sheet CSV file")
@@ -152,7 +247,7 @@ async def predict(
             ],
             config={
                 "response_mime_type": "application/json",
-                "response_schema": ProjectionSchema,
+                "response_schema": ComprehensiveFinancialProjectionResponse,
                 "temperature": 0.1,
                 "top_p": 0.8,
                 "top_k": 40,
@@ -183,7 +278,7 @@ async def predict(
         try:
             logger.info("Parsing and validating AI response...")
             parsed_response = json.loads(response.text)
-            validated_projection = ProjectionSchema(**parsed_response)
+            validated_projection = ComprehensiveFinancialProjectionResponse(**parsed_response)
             logger.info("AI response successfully parsed and validated.")
             return validated_projection
         except Exception as e:
