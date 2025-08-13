@@ -71,9 +71,9 @@ GoalProjectionsData
 #### Data Flow
 ```mermaid
 graph TD
-    A[Client] -->|POST /predict with CSVs (+ optional goal params)| B(FastAPI)
-    A -->|POST /predict-with-goal with CSVs + required goal params| B
-    A -->|POST /calculate-goal-requirements (JSON)| C[Utility Calculator]
+    A[Client] -->|POST /predict with CSVs; optional goal params| B(FastAPI)
+    A -->|POST /predict-with-goal with CSVs; required goal params| B
+    A -->|POST /calculate-goal-requirements JSON| C[Utility Calculator]
     B --> D{Validate File Types}
     D -- No --> E[HTTP 400]
     D -- Yes --> F[Read CSV File Contents]
@@ -110,7 +110,7 @@ graph TD
 
 ### AI Configuration
 - **Model**: `gemini-2.5-pro`
-- **Structured Output**: `response_schema=EnhancedProjectionSchema` (JSON)
+- **Structured Output**: `response_schema=EnhancedProjectionSchema` JSON
 - **Thinking**: `thinking_budget=32768`
 - **Sampling**: `temperature=0.1`, `top_p=0.8`, `top_k=40`
 - **Inputs**: Two CSV files (P&L and Balance Sheet) via multipart form data
@@ -142,11 +142,11 @@ Dedicated goal-based endpoint; requires goal parameters.
 ### `POST /calculate-goal-requirements`
 Utility endpoint to compute required CAGR and monthly growth.
 
-- **Request (JSON)**:
+- **Request JSON**:
   ```json
   { "current_revenue": 1000000, "target_revenue": 5000000, "timeframe_years": 3 }
   ```
-- **Response (JSON)**:
+- **Response JSON**:
   ```json
   {
     "current_revenue": 1000000,
@@ -204,7 +204,7 @@ Returns: `{ "status": "healthy", "timestamp": "...", "version": "2.0.0" }`
 #### 5) Goal Requirements Utility
 - Method: `POST`
 - URL: `http://localhost:8000/calculate-goal-requirements`
-- Body (JSON): `{ "current_revenue": 1000000, "target_revenue": 5000000, "timeframe_years": 3 }`
+- Body JSON: `{ "current_revenue": 1000000, "target_revenue": 5000000, "timeframe_years": 3 }`
 
 ## cURL Examples
 
