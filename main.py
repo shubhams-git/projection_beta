@@ -183,7 +183,7 @@ async def predict(
         - Validate that all financial ratios remain within realistic industry ranges
 
         ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-        ORIGINAL PROJECTION METHODOLOGY FRAMEWORK (UNCHANGED)
+        ORIGINAL PROJECTION METHODOLOGY FRAMEWORK
         ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
         1. REVENUE PROJECTIONS:
@@ -214,7 +214,7 @@ async def predict(
         - Maintain margins within realistic bounds for the specific industry type
 
         ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-        SPECIFIC ORIGINAL PROJECTION REQUIREMENTS (UNCHANGED)
+        SPECIFIC ORIGINAL PROJECTION REQUIREMENTS
         ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
         TIMEFRAME SPECIFICATIONS (commencing January of Next Year):
@@ -329,7 +329,7 @@ async def predict(
         - Check that competitive dynamics allow for accelerated market share growth
 
         ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-        STATISTICAL AND ANALYTICAL REQUIREMENTS (ENHANCED)
+        STATISTICAL AND ANALYTICAL REQUIREMENTS
         ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
         1. COMPARATIVE TREND ANALYSIS:
@@ -350,7 +350,7 @@ async def predict(
         - Suggest milestone markers for tracking progress toward goal
         - Provide alternative timeline scenarios if original goal is unfeasible
 
-        FINAL VALIDATION CHECKLIST (ENHANCED):
+        FINAL VALIDATION CHECKLIST:
         ☐ All original projection requirements are met with same quality
         ☐ Goal-based projections mathematically achieve specified target
         ☐ Both projection sets maintain internal mathematical consistency
