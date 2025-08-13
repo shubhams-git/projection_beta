@@ -1,168 +1,303 @@
-# Financial Projection API
+## Enhanced Financial Projection API (v2.0.0)
 
-## Overview
-The Financial Projection API is an intelligent financial projection engine built with FastAPI, designed to generate comprehensive financial forecasts and insights using Google's Generative AI (Gemini 2.5 Pro with thinking capabilities).
+### Overview
+An intelligent FastAPI service that generates comprehensive financial forecasts and insights using Google's Generative AI (Gemini 2.5 Pro with thinking capabilities). Version 2.0 introduces goal-based projections and an auxiliary growth-requirements calculator.
 
-## Architecture and Design
+### Architecture and Design
 
-### Application Structure
-The `main.py` file contains the core logic with enterprise-grade architecture:
+#### Application Structure
+The `main.py` file contains the core logic:
 
-**Key Components:**
-* **Comprehensive Pydantic Models**: 11+ detailed data models ensuring type safety and validation
-* **AI Integration**: Direct integration with Gemini 2.5 Pro using structured output and thinking configuration
-* **Error Handling**: Robust exception handling with detailed logging and HTTP status codes
-* **File Validation**: CSV file type validation and content processing
-* **Token Usage Tracking**: Monitors AI API consumption for cost optimization
+- **Comprehensive Pydantic Models**: Strongly typed schema with strict validation
+- **AI Integration**: Gemini 2.5 Pro with structured output (`response_schema`) and thinking budget
+- **Robust Error Handling**: Clear HTTP errors with detailed logging
+- **CSV Validation**: Strict file-type checks and content reading
+- **Usage Tracking**: Logs input/output/thinking token usage when available
 
-**Pydantic Schema Hierarchy:**
+#### Pydantic Schema Hierarchy
 ```
-ComprehensiveFinancialProjectionResponse
-├── ValidationQualityScores (3 instances)
-├── ProjectionMethodologyFramework
-├── ComprehensiveProjectionsDataset
-│   ├── DetailedMonthlyProjection (48 instances)
-│   ├── DetailedQuarterlyProjection (20 instances)
-│   └── DetailedAnnualProjection (25 instances)
-└── ComprehensiveFinancialRatios
+EnhancedProjectionSchema
+├── executive_summary: str
+├── business_name: str
+├── completion_score: QualityScores
+├── data_quality_score: QualityScores
+├── projection_confidence_score: QualityScores
+├── projection_drivers_found: List[str]
+├── assumptions_made: List[str]
+├── anomalies_found: List[str]
+├── methodology: MethodologyDetails
+├── projections_data: ProjectionsData
+│   ├── one_year_monthly: List[MonthlyProjection]        # 12
+│   ├── three_years_monthly: List[MonthlyProjection]     # 36
+│   ├── five_years_quarterly: List[QuarterlyProjection]  # 20
+│   ├── ten_years_annual: List[AnnualProjection]         # 10
+│   └── fifteen_years_annual: List[AnnualProjection]     # 15
+├── goal_based_projections?: GoalProjectionsData
+│   ├── three_years_monthly: List[MonthlyProjection]
+│   ├── goal_achievement_summary: str
+│   ├── required_adjustments: List[str]
+│   └── feasibility_assessment: str
+├── goal_feasibility_score?: QualityScores
+├── key_financial_ratios: KeyFinancialRatios
+├── risk_factors: List[str]
+└── recommendations: List[str]
+
+QualityScores
+├── score: float (0.0-1.0)
+└── rationale: str
+
+MethodologyDetails
+├── forecasting_methods_used: List[str]
+├── seasonal_adjustments_applied: bool
+├── trend_analysis_period: str
+└── growth_rate_assumptions: GrowthRateAssumptions
+
+GrowthRateAssumptions
+├── revenue_cagr: float
+├── expense_inflation: float
+└── profit_margin_target: float
+
+MonthlyProjection: { month, revenue, net_profit, gross_profit, expenses }
+QuarterlyProjection: { quarter, revenue, net_profit, gross_profit, expenses }
+AnnualProjection: { year, revenue, net_profit, gross_profit, expenses }
+
+GoalProjectionsData
+├── three_years_monthly: List[MonthlyProjection]
+├── goal_achievement_summary: str
+├── required_adjustments: List[str]
+└── feasibility_assessment: str
 ```
 
-### Data Flow
+#### Data Flow
 ```mermaid
 graph TD
-    A[Client] -->|POST /predict with CSV files| B(FastAPI Application)
-    B --> C{Validate File Types}
-    C -- No --> D[HTTP 400 Error]
-    C -- Yes --> E[Read CSV File Contents]
-    E --> F[Construct AI Prompt]
-    F --> G(Google Generative AI Model - Gemini 2.5 Pro)
-    G -->|Send CSVs + Prompt with ProjectionSchema| H(AI Generates JSON Response)
-    H --> I[Receive AI JSON Response]
-    I --> J{Parse & Validate JSON against ProjectionSchema}
-    J -- Validation Failed --> K[HTTP 500 Error]
-    J -- Validation Success --> L[Return Validated ProjectionSchema as JSON]
+    A[Client] -->|POST /predict with CSVs (+ optional goal params)| B(FastAPI)
+    A -->|POST /predict-with-goal with CSVs + required goal params| B
+    A -->|POST /calculate-goal-requirements (JSON)| C[Utility Calculator]
+    B --> D{Validate File Types}
+    D -- No --> E[HTTP 400]
+    D -- Yes --> F[Read CSV File Contents]
+    F --> G[Construct Enhanced Prompt]
+    G --> H(Google GenAI - Gemini 2.5 Pro)
+    H --> I[AI JSON Response]
+    I --> J{Parse & Validate against EnhancedProjectionSchema}
+    J -- Fail --> K[HTTP 500]
+    J -- Success --> L[Return Validated JSON]
     L --> A
+    C --> M[Compute CAGR & Monthly Growth]
+    M --> N[Return JSON]
+    N --> A
 ```
 
 ## Core Functionality
 
-### Financial Projections Generated
-* **1 Year Monthly**: 12 detailed monthly projections starting January next year
-* **3 Years Monthly**: 36 monthly projections for medium-term planning
-* **5 Years Quarterly**: 20 quarterly projections for strategic planning
-* **10 Years Annual**: Long-term strategic projections
-* **15 Years Annual**: Extended long-term analysis
+### Projections Generated
+- **1 Year Monthly**: 12 monthly projections (starting next January)
+- **3 Years Monthly**: 36 monthly projections
+- **5 Years Quarterly**: 20 quarterly projections
+- **10 Years Annual**: 10 annual projections
+- **15 Years Annual**: 15 annual projections
 
-### Business Intelligence Features
-* **Executive Summary**: Concise key insights and trends
-* **Quality Scoring**: Data quality, completion, and projection confidence scores (0.0-1.0)
-* **Financial Ratios**: Gross margin, net margin, current ratio, debt-to-equity
-* **Risk Analysis**: Identified financial and operational risks
-* **Strategic Recommendations**: Actionable insights based on projections
-* **Anomaly Detection**: Unusual patterns in historical data
+### Goal-Based Planning (New)
+- Optional inputs allow backward planning to a target revenue over a timeframe
+- Generates a dedicated 36-month pathway, feasibility assessment, and required adjustments
+
+### Business Intelligence
+- **Executive Summary** and methodology details
+- **Quality Scores**: completion, data quality, projection confidence
+- **Drivers, Assumptions, Anomalies** explicitly listed
+- **Financial Ratios**, **Risk Factors**, and **Recommendations**
 
 ### AI Configuration
-* **Model**: Gemini 2.5 Pro with thinking capabilities (32,768 token thinking budget)
-* **Temperature**: 0.1 (low randomness for financial accuracy)
-* **Response Format**: Structured JSON with strict schema validation
-* **Input**: CSV files processed as multipart form data
+- **Model**: `gemini-2.5-pro`
+- **Structured Output**: `response_schema=EnhancedProjectionSchema` (JSON)
+- **Thinking**: `thinking_budget=32768`
+- **Sampling**: `temperature=0.1`, `top_p=0.8`, `top_k=40`
+- **Inputs**: Two CSV files (P&L and Balance Sheet) via multipart form data
 
 ## API Endpoints
 
 ### `GET /`
-Health check endpoint returning API status.
+Returns: `{ "message": "Enhanced Financial Projection API v2.0 is running" }`
 
 ### `POST /predict`
-**Description**: Main projection endpoint accepting P&L and Balance Sheet CSV files
+Main endpoint for projections. Accepts optional goal parameters.
 
-**Request Format**: `multipart/form-data`
-**Required Files**:
-* `profit_loss_file`: Profit and Loss CSV file
-* `balance_sheet_file`: Balance Sheet CSV file
+- **Request**: `multipart/form-data`
+  - `profit_loss_file`: CSV (required)
+  - `balance_sheet_file`: CSV (required)
+  - Query (optional): `goal_target_revenue: float`, `goal_timeframe_years: int` (default 3)
+- **Response**: `EnhancedProjectionSchema` JSON
 
-**Response**: Comprehensive financial projection JSON with 200+ data points
+### `POST /predict-with-goal`
+Dedicated goal-based endpoint; requires goal parameters.
+
+- **Request**: `multipart/form-data` + Query
+  - `profit_loss_file`: CSV (required)
+  - `balance_sheet_file`: CSV (required)
+  - `target_revenue: float` (required)
+  - `timeframe_years: int` (default 3)
+- **Response**: `EnhancedProjectionSchema` JSON
+
+### `POST /calculate-goal-requirements`
+Utility endpoint to compute required CAGR and monthly growth.
+
+- **Request (JSON)**:
+  ```json
+  { "current_revenue": 1000000, "target_revenue": 5000000, "timeframe_years": 3 }
+  ```
+- **Response (JSON)**:
+  ```json
+  {
+    "current_revenue": 1000000,
+    "target_revenue": 5000000,
+    "timeframe_years": 3,
+    "required_cagr": 73.21,
+    "required_monthly_growth": 4.62,
+    "growth_multiple": 5.0,
+    "feasibility_assessment": "Requires detailed analysis with historical data",
+    "recommendation": "Use /predict endpoint with goal parameters for comprehensive analysis"
+  }
+  ```
 
 ### `GET /health`
-System health check with timestamp.
+Returns: `{ "status": "healthy", "timestamp": "...", "version": "2.0.0" }`
+
+### Interactive API Docs
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
 
 ## Testing with Postman
 
 ### Prerequisites
 1. Install dependencies: `pip install -r requirements.txt`
-2. Set up Google GenAI API key in your environment
+2. Set `GOOGLE_API_KEY` in your environment
+   - macOS/Linux: `export GOOGLE_API_KEY="YOUR_API_KEY"`
+   - Windows PowerShell (current session): `$env:GOOGLE_API_KEY="YOUR_API_KEY"`
+   - Windows (persist): `setx GOOGLE_API_KEY "YOUR_API_KEY"`
 3. Start server: `python main.py`
-4. Verify server is running at `http://localhost:8000`
+4. Verify server: `http://localhost:8000`
 
-### Step-by-Step Postman Testing
+### Step-by-Step Tests
 
-#### Test 1: Health Check
-1. **Method**: `GET`
-2. **URL**: `http://localhost:8000/health`
-3. **Expected Response**: `{"status": "healthy", "timestamp": "2025-01-XX..."}`
+#### 1) Health Check
+- Method: `GET`
+- URL: `http://localhost:8000/health`
+- Expect: `{ "status": "healthy", ... }`
 
-#### Test 2: Root Endpoint
-1. **Method**: `GET`
-2. **URL**: `http://localhost:8000/`
-3. **Expected Response**: `{"message": "Financial Projection API is running"}`
+#### 2) Root
+- Method: `GET`
+- URL: `http://localhost:8000/`
+- Expect: `{ "message": "Enhanced Financial Projection API v2.0 is running" }`
 
-#### Test 3: Financial Projection (Main Endpoint)
-1. **Method**: `POST`
-2. **URL**: `http://localhost:8000/predict`
-3. **Headers**: 
-   * Content-Type: `multipart/form-data` (Postman sets automatically)
-4. **Body**: 
-   * Select `form-data`
-   * Add key `profit_loss_file`, type `File`, upload your P&L CSV
-   * Add key `balance_sheet_file`, type `File`, upload your Balance Sheet CSV
-5. **Expected Response**: JSON with comprehensive financial projections (may take 30-60 seconds)
+#### 3) Projections (Main)
+- Method: `POST`
+- URL: `http://localhost:8000/predict`
+- Body: `form-data` with two CSV files
+- Optional query: `goal_target_revenue`, `goal_timeframe_years`
 
-#### Test 4: Error Handling - Invalid File Type
-1. **Method**: `POST`
-2. **URL**: `http://localhost:8000/predict`
-3. **Body**: Upload non-CSV files (e.g., .txt files)
-4. **Expected Response**: `400 Bad Request` with error message
+#### 4) Goal-Based Projections (Dedicated)
+- Method: `POST`
+- URL: `http://localhost:8000/predict-with-goal?target_revenue=5000000&timeframe_years=3`
+- Body: `form-data` with two CSV files
 
-#### Test 5: Error Handling - Missing Files
-1. **Method**: `POST`
-2. **URL**: `http://localhost:8000/predict`
-3. **Body**: Upload only one file or no files
-4. **Expected Response**: `422 Unprocessable Entity`
+#### 5) Goal Requirements Utility
+- Method: `POST`
+- URL: `http://localhost:8000/calculate-goal-requirements`
+- Body (JSON): `{ "current_revenue": 1000000, "target_revenue": 5000000, "timeframe_years": 3 }`
 
-### Sample Response Structure
+## cURL Examples
+
+### Health
+```bash
+curl -s http://localhost:8000/health
+```
+
+### Run Projections (baseline)
+```bash
+curl -X POST \
+  -F profit_loss_file=@path/to/profit_loss.csv \
+  -F balance_sheet_file=@path/to/balance_sheet.csv \
+  http://localhost:8000/predict
+```
+
+### Run Projections with goal (optional query)
+```bash
+curl -X POST \
+  -F profit_loss_file=@path/to/profit_loss.csv \
+  -F balance_sheet_file=@path/to/balance_sheet.csv \
+  "http://localhost:8000/predict?goal_target_revenue=5000000&goal_timeframe_years=3"
+```
+
+### Dedicated Goal Endpoint
+```bash
+curl -X POST \
+  -F profit_loss_file=@path/to/profit_loss.csv \
+  -F balance_sheet_file=@path/to/balance_sheet.csv \
+  "http://localhost:8000/predict-with-goal?target_revenue=5000000&timeframe_years=3"
+```
+
+### Goal Requirements Calculator
+```bash
+curl -X POST http://localhost:8000/calculate-goal-requirements \
+  -H "Content-Type: application/json" \
+  -d '{"current_revenue":1000000,"target_revenue":5000000,"timeframe_years":3}'
+```
+
+## Sample Response Structure (EnhancedProjectionSchema)
 ```json
 {
   "executive_summary": "Business shows strong growth potential...",
-  "business_name": "MJV Plumbing Services",
-  "completion_score": {"score": 0.95, "rationale": "..."},
-  "data_quality_score": {"score": 0.87, "rationale": "..."},
-  "projection_confidence_score": {"score": 0.89, "rationale": "..."},
-  "projections_data": {
-    "one_year_monthly": [...], // 12 months
-    "three_years_monthly": [...], // 36 months
-    "five_years_quarterly": [...], // 20 quarters
-    "ten_years_annual": [...], // 10 years
-    "fifteen_years_annual": [...] // 15 years
+  "business_name": "Example Co.",
+  "completion_score": { "score": 0.95, "rationale": "..." },
+  "data_quality_score": { "score": 0.87, "rationale": "..." },
+  "projection_confidence_score": { "score": 0.89, "rationale": "..." },
+  "projection_drivers_found": ["seasonality", "trend", "benchmarks"],
+  "assumptions_made": ["inflation at 3%", "stable margins"],
+  "anomalies_found": ["one-off expense in 2023-07"],
+  "methodology": {
+    "forecasting_methods_used": ["trend", "seasonal decomposition"],
+    "seasonal_adjustments_applied": true,
+    "trend_analysis_period": "36 months",
+    "growth_rate_assumptions": {
+      "revenue_cagr": 0.18,
+      "expense_inflation": 0.03,
+      "profit_margin_target": 0.22
+    }
   },
-  "key_financial_ratios": {...},
-  "risk_factors": [...],
-  "recommendations": [...]
+  "projections_data": {
+    "one_year_monthly": [ { "month": "2026-01", "revenue": 0, "gross_profit": 0, "expenses": 0, "net_profit": 0 } ],
+    "three_years_monthly": [],
+    "five_years_quarterly": [],
+    "ten_years_annual": [],
+    "fifteen_years_annual": []
+  },
+  "goal_based_projections": {
+    "three_years_monthly": [],
+    "goal_achievement_summary": "...",
+    "required_adjustments": ["increase marketing", "hire sales"],
+    "feasibility_assessment": "..."
+  },
+  "goal_feasibility_score": { "score": 0.72, "rationale": "..." },
+  "key_financial_ratios": { "gross_margin": 0.45, "net_margin": 0.12, "current_ratio": 1.8, "debt_to_equity": 0.6 },
+  "risk_factors": ["market slowdown"],
+  "recommendations": ["optimize COGS", "phase hiring"]
 }
 ```
 
 ## Performance Considerations
-* **Response Time**: 30-60 seconds for complex financial analysis
-* **File Size Limit**: Recommended < 10MB per CSV file
-* **Token Usage**: Monitored and logged for cost optimization
-* **Concurrency**: FastAPI handles multiple requests efficiently
+- Typical response time: 30–60 seconds for complex analysis
+- CSV size recommendation: < 10MB each
+- Token usage (input/output/thinking) logged when available
+- FastAPI handles concurrent requests
 
 ## Production Deployment
-* **Server**: Direct Python execution with `python main.py` (uses Uvicorn internally)
-* **Configuration**: Host: 0.0.0.0, Port: 8000 (configured in main.py)
-* **Environment**: Set `GOOGLE_GENAI_API_KEY` environment variable
-* **Monitoring**: Comprehensive logging with timestamp and severity levels
-* **Health Check**: `/health` endpoint for load balancer monitoring
+- Run: `python main.py` (Uvicorn inside)
+- Host: `0.0.0.0`, Port: `8000`
+- Env: `GOOGLE_API_KEY` must be set
+- Monitoring: structured logging; `/health` for liveness
 
 ## Error Codes
-* `400`: Invalid file format or missing required files
-* `422`: Request validation failed
-* `500`: Internal server error or AI service unavailable
+- `400`: Invalid file format
+- `422`: Request validation failed
+- `500`: Internal server error or AI service unavailable
