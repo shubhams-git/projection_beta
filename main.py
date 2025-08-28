@@ -126,8 +126,8 @@ async def root():
 
 @app.post("/predict", response_model=EnhancedProjectionSchema)
 async def predict(
-    profit_loss_file: UploadFile = File(..., description="Profit and Loss CSV file"),
-    balance_sheet_file: UploadFile = File(..., description="Balance Sheet CSV file"),
+    profit_loss_file: UploadFile = File(..., description="Profit and Loss file (CSV or JSON)"),
+    balance_sheet_file: UploadFile = File(..., description="Balance Sheet file (CSV or JSON)"),
     goal_target_revenue: Optional[float] = Query(None, description="Optional target revenue for goal-based projections"),
     goal_timeframe_years: Optional[int] = Query(3, description="Years to achieve the revenue goal")
 ):
@@ -136,19 +136,40 @@ async def predict(
         logger.info(f"Goal-based projection requested: ${goal_target_revenue:,.2f} in {goal_timeframe_years} years")
     
     try:
-        # Validate file types
-        if not profit_loss_file.filename or not profit_loss_file.filename.lower().endswith('.csv'):
-            logger.warning(f"Invalid file type for profit_loss_file: {profit_loss_file.filename}")
-            raise HTTPException(status_code=400, detail="Profit and Loss file must be a CSV")
-        if not balance_sheet_file.filename or not balance_sheet_file.filename.lower().endswith('.csv'):
-            logger.warning(f"Invalid file type for balance_sheet_file: {balance_sheet_file.filename}")
-            raise HTTPException(status_code=400, detail="Balance Sheet file must be a CSV")
+        # Validate file types - now supporting both CSV and JSON
+        def get_file_type(filename: str) -> str:
+            if not filename:
+                return None
+            filename_lower = filename.lower()
+            if filename_lower.endswith('.csv'):
+                return 'csv'
+            elif filename_lower.endswith('.json'):
+                return 'json'
+            else:
+                return None
         
-        logger.info("CSV files validated successfully. Reading contents...")
+        profit_loss_type = get_file_type(profit_loss_file.filename)
+        balance_sheet_type = get_file_type(balance_sheet_file.filename)
+        
+        if not profit_loss_type:
+            logger.warning(f"Invalid file type for profit_loss_file: {profit_loss_file.filename}")
+            raise HTTPException(status_code=400, detail="Profit and Loss file must be CSV or JSON")
+        if not balance_sheet_type:
+            logger.warning(f"Invalid file type for balance_sheet_file: {balance_sheet_file.filename}")
+            raise HTTPException(status_code=400, detail="Balance Sheet file must be CSV or JSON")
+        
+        logger.info(f"Files validated successfully. P&L: {profit_loss_type}, Balance Sheet: {balance_sheet_type}")
+        
         # Read file contents
         profit_loss_content = await profit_loss_file.read()
         balance_sheet_content = await balance_sheet_file.read()
-        logger.info("CSV file contents read.")
+        logger.info("File contents read successfully.")
+        
+        # Determine MIME types based on file extensions
+        profit_loss_mime_type = 'text/csv' if profit_loss_type == 'csv' else 'text/plain'
+        balance_sheet_mime_type = 'text/csv' if balance_sheet_type == 'csv' else 'text/plain'
+
+        logger.info(f"MIME types determined - P&L: {profit_loss_mime_type}, Balance Sheet: {balance_sheet_mime_type}")
         
         # Enhanced prompt with goal-based projection capabilities
         base_prompt = """
@@ -156,9 +177,9 @@ async def predict(
 
         Use your full potential of Deep Think, reasoning, and analytical capabilities to perform a thorough analysis of both the profit and loss statement and balance sheet data. Generate highly accurate, mathematically sound financial projections with rigorous attention to historical patterns, seasonality, and business fundamentals.
 
-        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
+        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
         CRITICAL DATA ANALYSIS REQUIREMENTS
-        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
+        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
         1. HISTORICAL DATA DEEP ANALYSIS:
         - Perform comprehensive trend analysis over the entire available historical period
@@ -175,67 +196,74 @@ async def predict(
         - Assess seasonal volatility and stability over multiple years
         - Account for any shifting seasonal patterns or evolving business cycles
 
-        3. MATHEMATICAL VALIDATION REQUIREMENTS:
-        - Ensure Revenue = Gross Profit + Cost of Goods Sold (COGS)
-        - Verify Net Profit = Gross Profit - Operating Expenses - Interest - Taxes
-        - Maintain consistent relationships between P&L and Balance Sheet items
-        - Apply compound growth calculations with precision to 4 decimal places
-        - Validate that all financial ratios remain within realistic industry ranges
+        3. COMPREHENSIVE FINANCIAL MODELING:
+        - Build sophisticated forecasting models incorporating multiple variables
+        - Use advanced statistical methods (ARIMA, exponential smoothing, regression analysis)
+        - Cross-validate projections using multiple methodological approaches
+        - Incorporate external economic indicators and industry benchmarks
+        - Apply Monte Carlo simulation for risk assessment and confidence intervals
 
-        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-        ORIGINAL PROJECTION METHODOLOGY FRAMEWORK
-        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
+        4. BUSINESS INTELLIGENCE EXTRACTION:
+        - Identify key business drivers and their correlation with financial performance
+        - Analyze cost structure evolution and operating leverage effects
+        - Assess working capital patterns and cash conversion cycles
+        - Evaluate profitability trends and margin compression/expansion factors
+        - Detect operational efficiency improvements or deteriorations
 
-        1. REVENUE PROJECTIONS:
-        - Base projections on weighted combination of:
-            * Historical trend analysis (40% weight)
-            * Seasonal patterns adjusted for growth (35% weight)
-            * Industry benchmarks and economic indicators (15% weight)
-            * Business-specific factors and market conditions (10% weight)
-        - Apply different growth rates for different revenue streams if identifiable
-        - Consider market saturation effects for long-term projections (10+ years)
-        - Factor in economic cycles and potential market disruptions
+        5. PROJECTION METHODOLOGY REQUIREMENTS:
+        - Generate projections for: 1-year monthly, 3-year monthly, 5-year quarterly, 10-year annual, 15-year annual
+        - Ensure mathematical consistency across all time horizons
+        - Apply different modeling techniques appropriate for each timeframe
+        - Incorporate macroeconomic assumptions and industry outlook
+        - Validate projections against industry benchmarks and peer analysis
 
-        2. EXPENSE PROJECTIONS:
-        - Categorize expenses into fixed, variable, and semi-variable components
-        - Variable expenses: Scale with revenue using historical ratios
-        - Fixed expenses: Apply inflation adjustments (typically 2-4% annually)
-        - Semi-variable expenses: Use step-function modeling where applicable
-        - Account for operational leverage effects as business scales
-        - Consider cost optimization opportunities and efficiency improvements
+        6. RISK ASSESSMENT AND SCENARIO ANALYSIS:
+        - Identify key risk factors affecting business performance
+        - Conduct sensitivity analysis on critical assumptions
+        - Develop confidence intervals for all major projections
+        - Assess business model sustainability and competitive positioning
+        - Evaluate external threats and market disruption risks
 
-        3. PROFIT MARGIN ANALYSIS:
-        - Calculate historical gross margin trends and variability
-        - Project margin improvements/deterioration based on:
-            * Scale economies or diseconomies
-            * Competitive pressures and pricing power
-            * Cost inflation vs. pricing ability
-            * Operational efficiency initiatives
-        - Maintain margins within realistic bounds for the specific industry type
+        7. DATA FORMAT FLEXIBILITY:
+        - The data may be provided in CSV or JSON format
+        - For JSON data: Extract and interpret the structured fields including section, account_name, amount, period_identifier, date_as_of, etc.
+        - For CSV data: Parse and analyze traditional tabular financial statements
+        - Ensure consistent interpretation regardless of input format
+        - Handle multi-year historical data spanning 2020-2024 or similar ranges
+        - Properly aggregate and normalize data for analysis
 
-        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-        SPECIFIC ORIGINAL PROJECTION REQUIREMENTS
-        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
+        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+        ENHANCED QUALITY CONTROL REQUIREMENTS
+        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-        TIMEFRAME SPECIFICATIONS (commencing January of Next Year):
-        - 1 year: Monthly values (12 data points) - High granularity with seasonal precision
-        - 3 years: Monthly values (36 data points) - Medium-term strategic planning
-        - 5 years: Quarterly values (20 data points) - Long-term business planning
-        - 10 years: Annual values (10 data points) - Strategic horizon planning
-        - 15 years: Annual values (15 data points) - Extended strategic analysis
+        1. COMPLETION SCORE (0.0-1.0):
+        - Assess how well all requested projection timeframes are generated
+        - Evaluate completeness of financial statements coverage
+        - Score based on mathematical consistency and logical coherence
+        - Factor in depth of analysis and insight quality
 
-        FOR EACH PROJECTION PERIOD, PROVIDE:
-        - Revenue (with sub-components if identifiable)
-        - Gross Profit (mathematically consistent with revenue and COGS)
-        - Total Expenses (broken down by category where possible)
-        - Net Profit (after all expenses, interest, and taxes)
+        2. DATA QUALITY SCORE (0.0-1.0):
+        - Evaluate completeness and consistency of input data
+        - Assess data reliability and identify missing or anomalous values
+        - Score based on data coverage across time periods and accounts
+        - Factor in data granularity and historical depth
 
-        MATHEMATICAL CONSISTENCY CHECKS:
-        ✓ Monthly totals must equal quarterly aggregates
-        ✓ Quarterly totals must equal annual aggregates
-        ✓ Growth rates must be mathematically consistent across timeframes
-        ✓ Seasonal patterns must repeat logically year over year
-        ✓ All financial statement relationships must remain valid
+        3. PROJECTION CONFIDENCE SCORE (0.0-1.0):
+        - Assess reliability of projection methodologies used
+        - Evaluate statistical significance of identified trends
+        - Score based on historical performance validation
+        - Factor in uncertainty quantification and risk assessment quality
+
+        CRITICAL BUSINESS ANALYSIS COMPONENTS:
+        - Executive Summary: Comprehensive 3-4 paragraph summary of key findings and projections
+        - Business Name: Extract from data or infer from context
+        - Key Financial Ratios: Calculate and project critical performance metrics
+        - Risk Factors: Identify 5-10 specific risks affecting projections
+        - Recommendations: Provide 5-8 actionable strategic recommendations
+        - Anomalies: Document all significant data anomalies or unusual patterns discovered
+        - Assumptions: List all critical assumptions underlying projections
+        - Methodology: Detail statistical and analytical methods employed
+
         """
 
         # NEW: Goal-based projection requirements
@@ -243,9 +271,9 @@ async def predict(
         if goal_target_revenue:
             goal_prompt_addition = f"""
 
-        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
+        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
         GOAL-BASED PROJECTION REQUIREMENTS - BACKWARD PLANNING METHODOLOGY
-        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
+        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
         CLIENT GOAL SPECIFICATION:
         - Target Revenue: ${goal_target_revenue:,.2f}
@@ -276,69 +304,14 @@ async def predict(
             * Investment requirements for growth (marketing, staff, infrastructure)
         - Net Profit → Calculate as Gross Profit minus scaled expenses
 
-        4. FEASIBILITY VALIDATION:
-        - Assess if required growth rate is sustainable given:
-            * Historical volatility and growth patterns
-            * Market size constraints and competitive dynamics
-            * Operational capacity and scalability requirements
-            * Financial resources needed for growth acceleration
-        - Provide feasibility score (0.0-1.0) with detailed rationale
+        4. FEASIBILITY ASSESSMENT FRAMEWORK:
+        - Historical Performance Analysis: Compare required growth rates against past performance
+        - Market Capacity Evaluation: Assess market size and competitive constraints
+        - Resource Requirements: Calculate additional resources needed (capital, personnel, infrastructure)
+        - Risk Factor Analysis: Identify key risks that could derail goal achievement
+        - Milestone Planning: Define quarterly and annual milestones toward goal
 
-        5. GOAL-SPECIFIC OUTPUT REQUIREMENTS:
-        - Generate 36 months of monthly goal-based projections (revenue, gross profit, expenses, net profit)
-        - Provide goal achievement summary explaining the pathway
-        - List required adjustments and investments needed
-        - Compare goal-based projections against original projections
-        - Assess risk factors specific to achieving the accelerated growth
-
-        MATHEMATICAL CONSTRAINTS FOR GOAL PROJECTIONS:
-        ✓ Final month revenue must equal or exceed target amount
-        ✓ Growth trajectory must be mathematically consistent
-        ✓ Seasonal patterns must be preserved in goal-based projections
-        ✓ Profit margins must remain within achievable ranges
-        ✓ Cash flow implications must be sustainable
-        ✓ All financial relationships must remain valid
-
-        CRITICAL: Generate BOTH original projections AND goal-based projections in the same response.
-        The original projections should be exactly as they would be without any goal specification.
-        The goal-based projections should be a separate analysis showing the pathway to achieve the specified target.
-        """
-
-        enhanced_quality_section = """
-
-        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-        ENHANCED QUALITY ASSURANCE AND VALIDATION
-        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-
-        1. DUAL PROJECTION VALIDATION:
-        - Ensure original projections are unaffected by goal specifications
-        - Validate goal-based projections achieve the specified target
-        - Cross-validate mathematical consistency in both projection sets
-        - Compare feasibility and realism between original and goal-based scenarios
-
-        2. GOAL FEASIBILITY ASSESSMENT:
-        - Calculate required growth acceleration compared to historical trends
-        - Assess market capacity to support accelerated growth
-        - Evaluate operational requirements for goal achievement
-        - Provide confidence score for goal achievability (0.0-1.0)
-
-        3. BUSINESS LOGIC VALIDATION:
-        - Ensure goal-based projections maintain realistic profit margins
-        - Validate that cash flow can support accelerated growth
-        - Assess if required investments are within reasonable ranges
-        - Check that competitive dynamics allow for accelerated market share growth
-
-        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-        STATISTICAL AND ANALYTICAL REQUIREMENTS
-        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-
-        1. COMPARATIVE TREND ANALYSIS:
-        - Calculate variance between original and goal-based growth trajectories
-        - Assess statistical significance of required growth acceleration
-        - Identify key performance indicators that must improve to achieve goals
-        - Quantify the risk premium associated with accelerated growth
-
-        2. SCENARIO STRESS TESTING:
+        5. SCENARIO STRESS TESTING:
         - Test goal achievement under various market conditions
         - Assess sensitivity to key assumption changes
         - Evaluate downside protection and contingency requirements
@@ -360,9 +333,32 @@ async def predict(
         ☐ Quality scores accurately reflect confidence in both projection sets
         """
 
+        enhanced_quality_section = """
+
+        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+        OUTPUT FORMAT AND VALIDATION REQUIREMENTS
+        ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+        MANDATORY OUTPUT STRUCTURE:
+        - Must be valid JSON conforming exactly to the EnhancedProjectionSchema
+        - All financial figures must be mathematically consistent
+        - All quality scores must include both score (0.0-1.0) and detailed rationale
+        - All projections must be realistic and based on data-driven analysis
+        - Executive summary must be comprehensive yet concise (3-4 paragraphs)
+
+        CRITICAL VALIDATION POINTS:
+        ☐ JSON structure matches schema exactly
+        ☐ All required fields are populated with meaningful data
+        ☐ Financial projections are mathematically consistent
+        ☐ Quality scores reflect actual analysis depth
+        ☐ Assumptions and methodology are clearly documented
+        ☐ Risk factors are specific and relevant
+        ☐ Recommendations are actionable and strategic
+        """
+
         full_prompt = base_prompt + goal_prompt_addition + enhanced_quality_section
 
-        logger.info("Calling Google Generative AI API with enhanced goal-based capabilities...")
+        logger.info("Calling Google Generative AI API with enhanced goal-based capabilities and flexible file format support...")
         
         config = types.GenerateContentConfig(
             response_mime_type="application/json",
@@ -380,11 +376,11 @@ async def predict(
             contents=[
                 types.Part.from_bytes(
                     data=profit_loss_content,
-                    mime_type='text/csv',
+                    mime_type=profit_loss_mime_type,
                 ),
                 types.Part.from_bytes(
                     data=balance_sheet_content,
-                    mime_type='text/csv',
+                    mime_type=balance_sheet_mime_type,
                 ),
                 full_prompt
             ],
@@ -437,8 +433,8 @@ async def predict(
 # FIXED: Dedicated goal-based projection endpoint with proper Query parameters
 @app.post("/predict-with-goal", response_model=EnhancedProjectionSchema)
 async def predict_with_goal(
-    profit_loss_file: UploadFile = File(..., description="Profit and Loss CSV file"),
-    balance_sheet_file: UploadFile = File(..., description="Balance Sheet CSV file"),
+    profit_loss_file: UploadFile = File(..., description="Profit and Loss file (CSV or JSON)"),
+    balance_sheet_file: UploadFile = File(..., description="Balance Sheet file (CSV or JSON)"),
     target_revenue: float = Query(..., description="Target revenue amount"),
     timeframe_years: int = Query(3, description="Years to achieve goal")
 ):
